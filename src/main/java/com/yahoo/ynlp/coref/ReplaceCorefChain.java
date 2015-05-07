@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,12 +32,12 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeCoreAnnotations.TreeAnnotation;
 import edu.stanford.nlp.util.CoreMap;
 
-public class ReplaceLongestCorefChain {
+public class ReplaceCorefChain {
 	public static void main(String[] args) {
-		demo1();
-		demo2();
+		//demo1();
+		//demo2();
 
-		// demo(args);
+		demo(args);
 	}
 
 	public static void demo(String[] args) {
@@ -118,9 +119,10 @@ public class ReplaceLongestCorefChain {
 
 		// these are all the sentences in this document
 		// a CoreMap is essentially a Map that uses class objects as keys
-		// and
-		// has values with custom types
+		// and has values with custom types
 		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
+
+		List<List<String>> outputSentences = new LinkedList<List<String>>();
 
 		for (CoreMap sentence : sentences) {
 			// traversing the words in the current sentence
@@ -129,10 +131,13 @@ public class ReplaceLongestCorefChain {
 
 			// System.out.println("sentence=" + sentence);
 
+			List<String> outputTokens = new LinkedList<String>();
+
 			for (CoreLabel token : sentence.get(TokensAnnotation.class)) {
 				// this is the text of the token
 				String word = token.get(TextAnnotation.class);
 				// System.out.print("token=" + word);
+				outputTokens.add(word);
 
 				// this is the index of the token
 				String index = "" + token.get(IndexAnnotation.class);
@@ -152,6 +157,8 @@ public class ReplaceLongestCorefChain {
 
 				// System.out.println();
 			}
+
+			outputSentences.add(outputTokens);
 
 			// this is the parse tree of the current sentence
 			Tree tree = sentence.get(TreeAnnotation.class);
@@ -176,79 +183,60 @@ public class ReplaceLongestCorefChain {
 		Iterator<Entry<Integer, CorefChain>> corefChainIter = graph.entrySet()
 				.iterator();
 
-		CorefChain longestCorefChain = null;
+		// CorefChain longestCorefChain = null;
 		while (corefChainIter.hasNext()) {
 			Entry<Integer, CorefChain> entry = corefChainIter.next();
 			CorefChain tempCorefChain = entry.getValue();
-			if (longestCorefChain == null) {
-				longestCorefChain = tempCorefChain;
-			} else {
-				if (tempCorefChain.getMentionsInTextualOrder().size() > longestCorefChain
-						.getMentionsInTextualOrder().size()) {
-					longestCorefChain = tempCorefChain;
+
+			if (tempCorefChain.getMentionsInTextualOrder().size() <= 2) {
+				continue;
+			}
+
+			// StringBuilder strBdr = new StringBuilder();
+			// int sentIndex = 0;
+			// int tokenIndex = 0;
+			// System.out.println("CoRef Entity: " + corefChain.getChainID()
+			// + " " + corefChain.getRepresentativeMention());
+			Iterator<CorefMention> mentionIter = tempCorefChain
+					.getMentionsInTextualOrder().iterator();
+			while (mentionIter.hasNext()) {
+				CorefMention corefMention = mentionIter.next();
+
+				int sentIndex = corefMention.sentNum - 1;
+				int startIndex = corefMention.startIndex - 1;
+				int endIndex = corefMention.endIndex - 1;
+				
+				outputSentences.get(sentIndex).set(startIndex,
+						tempCorefChain.getRepresentativeMention().mentionSpan);
+				for (int index = startIndex + 1; index < endIndex; index++) {
+					outputSentences.get(sentIndex).set(index, "");
 				}
+
+				/*
+				System.out.println(corefMention.toString() + " | "
+						+ corefMention.sentNum + " | "
+						+ corefMention.corefClusterID + " | "
+						+ corefMention.mentionID + " | "
+						+ corefMention.position + " | "
+						+ corefMention.mentionSpan + " | "
+						+ corefMention.startIndex + " " + corefMention.endIndex
+						+ " | " + corefMention.headIndex);
+				*/
 			}
 		}
 
 		StringBuilder strBdr = new StringBuilder();
-		int sentIndex = 0;
-		int tokenIndex = 0;
-		// System.out.println("CoRef Entity: " + corefChain.getChainID()
-		// +
-		// " " + corefChain.getRepresentativeMention());
-		Iterator<CorefMention> mentionIter = longestCorefChain
-				.getMentionsInTextualOrder().iterator();
-		while (mentionIter.hasNext()) {
-			CorefMention corefMention = mentionIter.next();
-			for (; sentIndex < corefMention.sentNum - 1; sentIndex++) {
-				List<CoreLabel> tokens = sentences.get(sentIndex).get(
-						TokensAnnotation.class);
-				for (; tokenIndex < tokens.size(); tokenIndex++) {
-					strBdr.append(tokens.get(tokenIndex).get(
-							TextAnnotation.class));
+		Iterator<List<String>> outputSentenceIter = outputSentences.iterator();
+		while (outputSentenceIter.hasNext()) {
+			Iterator<String> outputTokenIter = outputSentenceIter.next()
+					.iterator();
+			while (outputTokenIter.hasNext()) {
+				String token = outputTokenIter.next();
+				strBdr.append(token);
+				if (token.length() > 0) {
 					strBdr.append(" ");
 				}
-
-				tokenIndex = 0;
 			}
-
-			List<CoreLabel> tokens = sentences.get(sentIndex).get(
-					TokensAnnotation.class);
-			for (; tokenIndex < corefMention.startIndex - 1; tokenIndex++) {
-				strBdr.append(tokens.get(tokenIndex).get(TextAnnotation.class));
-				strBdr.append(" ");
-			}
-
-			strBdr.append(longestCorefChain.getRepresentativeMention().mentionSpan);
-			strBdr.append(" ");
-
-			// List<CoreLabel> tokens = sentences.get(sentIndex).get(
-			// TokensAnnotation.class);
-			tokenIndex = corefMention.endIndex - 1;
-			if (tokenIndex == tokens.size() - 1) {
-				tokenIndex = 0;
-				sentIndex++;
-			}
-
-			/*
-			 * System.out.println(corefMention.toString() + " | " +
-			 * corefMention.sentNum + " | " + corefMention.corefClusterID +
-			 * " | " + corefMention.mentionID + " | " + corefMention.position +
-			 * " | " + corefMention.mentionSpan + " | " +
-			 * corefMention.startIndex + " " + corefMention.endIndex + " | " +
-			 * corefMention.headIndex);
-			 */
-		}
-
-		for (; sentIndex < sentences.size(); sentIndex++) {
-			List<CoreLabel> tokens = sentences.get(sentIndex).get(
-					TokensAnnotation.class);
-			for (; tokenIndex < tokens.size(); tokenIndex++) {
-				strBdr.append(tokens.get(tokenIndex).get(TextAnnotation.class));
-				strBdr.append(" ");
-			}
-
-			tokenIndex = 0;
 		}
 
 		text = strBdr.toString();

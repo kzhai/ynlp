@@ -5,7 +5,7 @@ YNLP_LIB_HOME=$YNLP_HOME/lib
 YNLP_TARGET_CLASS_HOME=$YNLP_HOME/target/classes
 
 REVERB_ENTRY_CLASS=edu.washington.cs.knowitall.util.CommandLineReVerb
-REPLACE_LONGEST_COREF_CHAIN=com.yahoo.ynlp.coref.ReplaceLongestCorefChain
+REPLACE_LONGEST_COREF_CHAIN=com.yahoo.ynlp.coref.ReplaceCorefChain
 
 if [ $# != 1 ]; then
     echo "usage: coref_reverb.sh input_file"
