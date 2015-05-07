@@ -46,6 +46,7 @@
 
   <build>
     <plugins>
+
       <plugin>
 	<groupId>org.apache.maven.plugins</groupId>
 	<artifactId>maven-jar-plugin</artifactId>
@@ -55,13 +56,12 @@
 	    <manifest>
               <addClasspath>true</addClasspath>
               <classpathPrefix>lib/</classpathPrefix>
-              <mainClass>com.yahoo.ynlp.example.Test</mainClass>
+              <mainClass>com.yahoo.ynlp.coref.ReplaceLongestCorefChain</mainClass>
 	    </manifest>
 	  </archive>
 	</configuration>
-	
       </plugin>
-
+      
     </plugins>
   </build>
 
@@ -104,7 +104,7 @@
       <version>3.5.1</version>
       <classifier>sources</classifier>
     </dependency>
-   	<dependency>
+    <dependency>
       <groupId>edu.stanford.nlp</groupId>
       <artifactId>stanford-corenlp</artifactId>
       <version>3.5.1</version>
